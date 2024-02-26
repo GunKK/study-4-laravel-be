@@ -100,18 +100,27 @@ class AuthController extends Controller
 
                 if ($expiresAt->isPast()) {
                     $user = Auth::user();
-                    $refreshToken = JWTAuth::fromUser($user->id, ['exp' => now()->addDays(7)->timestamp]);
-                    $cookie = cookie('refresh_token', $refreshToken, now()->addDays(7)->timestamp);
+
+                    $refreshToken = JWTAuth::claims( [
+                        'key' => env('JWT_REFRESH_SECRET'),
+                        'exp' => Carbon::now()->addDays(7)
+                    ])->fromUser($user);
+                    $newToken = Auth::refresh();
+                    $cookieAccessToken = cookie('access_token', $newToken, 3600); // 1 hour
+                    $cookieRefreshToken = cookie('refresh_token', $refreshToken, Carbon::now()->addDays(7)->timestamp);
+
                     return response()->json([
                         'status' => 'success',
                         'user' => $user,
-                        'token' => Auth::refresh(),
+                        'token' => $newToken,
                         'type' => 'bearer',
-                    ], Response::HTTP_OK)->withCookie($cookie);
+                    ], Response::HTTP_OK)
+                    ->withCookie($cookieAccessToken)
+                    ->withCookie($cookieRefreshToken);
                 }
             } catch (JWTException $e) {
                 return response()->json([
-                    'message' => 'create refresh token failed',
+                    'error' => 'trace ' . $e->getMessage(),
                 ]. Response::HTTP_INTERNAL_SERVER_ERROR);
             }
         }
