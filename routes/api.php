@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\api\v1\AuthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
@@ -26,6 +27,18 @@ Route::get('/ping', function (Request  $request) {
     return ['msg' => $msg];
 });
 
-// Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-//     return $request->user();
-// });
+Route::group([
+    'prefix' => 'v1'
+], function() {
+    Route::post('auth/login', [AuthController::class, 'login']);
+    Route::post('auth/register', [AuthController::class, 'register']);
+    Route::group([
+        'middleware' => 'auth:api',
+        'prefix' => 'auth'
+    ], function () {
+        Route::delete('logout', [AuthController::class, 'logout']);
+        Route::post('refresh', [AuthController::class, 'refresh']);
+        Route::get('me', [AuthController::class, 'me']);
+    });
+});
+
