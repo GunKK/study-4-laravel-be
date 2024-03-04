@@ -7,16 +7,19 @@ namespace App\Models;
 use Carbon\Carbon;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use MongoDB\Laravel\Eloquent\SoftDeletes;
 // use Illuminate\Foundation\Auth\User as Authenticatable;
 use MongoDB\Laravel\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use MongoDB\Laravel\Relations\HasMany;
 
 class User extends Authenticatable implements JWTSubject
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
     protected $collection = 'users';
     protected $connection = 'mongodb';
+    protected $dates = ['created_at','updated_at','deleted_at'];
     /**
      * The attributes that are mass assignable.
      *
@@ -47,6 +50,7 @@ class User extends Authenticatable implements JWTSubject
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'role' => 'integer',
     ];
 
     protected $attributes = [
@@ -72,5 +76,15 @@ class User extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims()
     {
         return [];
+    }
+
+    protected $appends = ['id'];
+    public function getIdAttribute($value = null) {
+        return $this->attributes['_id'];
+    }
+
+    public function userAnswers(): HasMany
+    {
+        return $this->hasMany(UserAnswerMongoDB::class);
     }
 }
